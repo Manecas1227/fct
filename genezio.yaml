@@ -1,0 +1,10 @@
+frontend:
+    path: ./
+    publish: ""
+    scripts:
+        build: node index.js
+        deploy: ""
+    subdomain: fct
+name: fct
+region: eu-central-1
+yamlVersion: 2
