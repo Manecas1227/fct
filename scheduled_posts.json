@@ -1,0 +1,12 @@
+[
+  {
+    "mediaPath": "./uploads/1728662056201_processed_image.jpg",
+    "mediaType": "image",
+    "legenda": "\"Desfrutando do sol e da brisa marítima com a bandeira das bonitas a flutuar ao vento. 🌊☀️ #verão #beleza #mar #blessed\"",
+    "thumbnailPath": null,
+    "igUsername": "fct_devs_isq",
+    "igPassword": "isq123456",
+    "cronSchedule": "00 15 * * 1",
+    "id": "1728662056207"
+  }
+]

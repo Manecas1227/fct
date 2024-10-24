@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postar no Instagram</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 40px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #1877f2;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #4b4f56;
+        }
+        .form-control, .custom-select {
+            border-radius: 8px;
+            border: 1px solid #dddfe2;
+        }
+        .btn-primary {
+            background-color: #1877f2;
+            border-color: #1877f2;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #166fe5;
+        }
+        #preview {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        #preview img, #preview video, #preview canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .custom-file-label {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .weekday-selector {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .weekday-selector label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .weekday-selector input[type="checkbox"] {
+            margin-top: 5px;
+        }
+        #addText, #addLogo {
+            display: none;
+        }
+        #logoPreview {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary bg-primary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <h3 class="nav-link" style="color: white;"><%= user ? user.igUsername : '' %></h3>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    <li class="nav-item pl-3">
+                        <a href="/editar-credenciais" style="color: white;" onclick="<% message : 'undefined' %>"><i class="fas fa-edit mr-2"></i>Editar Credenciais</a>
+                    </li>
+                    <li class="nav-item pl-3">
+                        <a href="/scheduled-posts" style="color: white;"><i class="fas fa-calendar mr-2"></i>Posts Agendados</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h2 class="text-center"><i class="fab fa-instagram"></i> Post de Fotos e Vídeos</h2>
+        <form id="postForm" action="/post-insta" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="mediaSource"><i class="fas fa-image mr-2"></i>Fonte da mídia:</label>
+                <select class="form-control custom-select" id="mediaSource" name="mediaSource" required>
+                    <option value="upload">Upload de arquivo</option>
+                    <option value="ai">Gerar com IA</option>
+                </select>
+            </div>
+            <div id="uploadGroup" class="form-group">
+                <label for="media"><i class="fas fa-file-upload mr-2"></i>Escolha a mídia:</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="media" name="media" accept="image/*,video/*">
+                    <label class="custom-file-label" for="media" data-browse="Procurar">Selecionar arquivo</label>
+                </div>
+            </div>
+            <div id="aiGroup" class="form-group" style="display: none;">
+                <label for="aiPrompt"><i class="fas fa-robot mr-2"></i>Descreva a imagem desejada:</label>
+                <textarea class="form-control" id="aiPrompt" name="aiPrompt" rows="3" placeholder="Descreva a imagem que você deseja gerar com IA"></textarea>
+            </div>
+            <div class="form-group">
+                <div class="custom-control custom-checkbox" id="divchecktexto" style="display: none;">
+                    <input type="checkbox" style="display: none;" class="custom-control-input" id="addText" name="addText">
+                    <label class="custom-control-label" for="addText"><i class="fas fa-font mr-2"></i>Adicionar Texto à Imagem</label>
+                </div>
+            </div>
+            <div id="textOptionsGroup" style="display: none;">
+                <div class="form-group">
+                    <label for="fontSize"><i class="fas fa-text-height mr-2"></i>Tamanho da Fonte:</label>
+                    <input type="number" class="form-control" id="fontSize" name="fontSize" value="32" min="10" max="100">
+                </div>
+                <div class="form-group">
+                    <label for="textColor"><i class="fas fa-palette mr-2"></i>Cor do Texto:</label>
+                    <input type="color" class="form-control" id="textColor" name="textColor" value="#ffffff">
+                </div>
+                <div class="form-group">
+                    <label for="fontFamily"><i class="fas fa-font mr-2"></i>Fonte:</label>
+                    <select class="form-control" id="fontFamily" name="fontFamily">
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Palatino">Palatino</option>
+                        <option value="Garamond">Garamond</option>
+                        <option value="Bookman">Bookman</option>
+                        <option value="Comic Sans MS">Comic Sans MS</option>
+                        <option value="Trebuchet MS">Trebuchet MS</option>
+                        <option value="Arial Black">Arial Black</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="imageText"><i class="fas fa-pencil-alt mr-2"></i>Texto a adicionar:</label>
+                    <input type="text" class="form-control" id="imageText" name="imageText" placeholder="Digite o texto a adicionar à imagem">
+                </div>
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="useAIText" name="useAIText">
+                        <label class="custom-control-label" for="useAIText"><i class="fas fa-robot mr-2"></i>Usar texto gerado por IA</label>
+                    </div>
+                </div>
+                <div id="aiTextGroup" style="display: none;">
+                    <div class="form-group">
+                        <label for="aiTextPrompt"><i class="fas fa-comment-alt mr-2"></i>Prompt para texto AI:</label>
+                        <input type="text" class="form-control" id="aiTextPrompt" name="aiTextPrompt" placeholder="Digite um prompt para gerar texto com IA">
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="generateAITextButton">Gerar Texto AI</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="custom-control custom-checkbox" id="divchecklogo" style="display: none;">
+                    <input type="checkbox" style="display: none;" class="custom-control-input" id="addLogo" name="addLogo">
+                    <label class="custom-control-label" for="addLogo"><i class="fas fa-image mr-2"></i>Adicionar Logo à Imagem</label>
+                </div>
+            </div>
+            <div id="logoOptionsGroup" style="display: none;">
+                <div class="form-group">
+                    <label for="logoFile"><i class="fas fa-file-image mr-2"></i>Upload do Logo:</label>
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" id="logoFile" name="logoFile" accept="image/*">
+                        <label class="custom-file-label" for="logoFile" data-browse="Procurar">Escolha o arquivo do logo</label>
+                    </div>
+                </div>
+                <% if (user && user.logoPath) { %>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="useDefaultLogo" name="useDefaultLogo">
+                            <label class="custom-control-label" for="useDefaultLogo">Usar logo predefinida</label>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+            
+            <div id="preview"></div>
+            <div id="aiControlButtons" style="display: none;">
+                <button type="button" class="btn btn-secondary" id="regenerateButton"><i class="fas fa-redo mr-2"></i>Gerar Novamente</button>
+                <button type="button" class="btn btn-success" id="useImageButton"><i class="fas fa-check mr-2"></i>Usar Esta Imagem</button>
+            </div>
+            <div id="thumbnailGroup" class="form-group" style="display: none;">
+                <label for="thumbnail"><i class="fas fa-image mr-2"></i>Thumbnail personalizada (opcional):</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="thumbnail" name="thumbnail" accept="image/*">
+                    <label class="custom-file-label" for="thumbnail" data-browse="Procurar">Selecionar thumbnail</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="legenda"><i class="fas fa-pen mr-2"></i>Descrição do post:</label>
+                <input type="text" class="form-control" id="legenda" name="legenda" placeholder="Descrição do post (opcional)" maxlength="2200">
+                <div class="custom-control custom-checkbox mt-2">
+                    <input type="checkbox" class="custom-control-input" id="useAIDescription" name="useAIDescription">
+                    <label class="custom-control-label" for="useAIDescription"><i class="fas fa-robot mr-2"></i>Usar descrição gerada por IA</label>
+                </div>
+                <div id="aiDescriptionGroup" style="display: none;">
+                    <div class="form-group mt-2">
+                        <label for="aiDescriptionPrompt"><i class="fas fa-comment-alt mr-2"></i>Prompt para descrição AI:</label>
+                        <input type="text" class="form-control" id="aiDescriptionPrompt" name="aiDescriptionPrompt" placeholder="Digite um prompt para gerar a descrição com IA">
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="generateAIDescriptionButton">Gerar Descrição AI</button>
+                </div>
+            </div>
+            
+            
+            <div class="form-group">
+                <label for="scheduleOption"><i class="fas fa-clock mr-2"></i>Agendamento:</label>
+                <select class="form-control custom-select" id="scheduleOption" name="scheduleOption">
+                    <option value="now">Postar agora</option>
+                    <option value="daily">Diariamente</option>
+                    <option value="weekly">Semanalmente</option>
+                    <option value="custom">Personalizado</option>
+                </select>
+            </div>
+            <div id="customScheduleGroup" class="form-group" style="display: none;">
+                <label><i class="fas fa-calendar-alt mr-2"></i>Agendamento personalizado:</label>
+                <div class="weekday-selector">
+                    <label><input type="checkbox" name="weekdays" value="1"> Seg</label>
+                    <label><input type="checkbox" name="weekdays" value="2"> Ter</label>
+                    <label><input type="checkbox" name="weekdays" value="3"> Qua</label>
+                    <label><input type="checkbox" name="weekdays" value="4"> Qui</label>
+                    <label><input type="checkbox" name="weekdays" value="5"> Sex</label>
+                    <label><input type="checkbox" name="weekdays" value="6"> Sáb</label>
+                    <label><input type="checkbox" name="weekdays" value="0"> Dom</label>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <input type="time" class="form-control" id="customTime" name="customTime">
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="aiGeneratedImage" name="aiGeneratedImage">
+            <button type="submit" class="btn btn-primary btn-block" id="postButton"><i class="fas fa-paper-plane mr-2"></i>Postar</button>
+        </form>
+        <button type="button" class="btn btn-primary btn-block" id="generateButton" style="display: none;"><i class="fas fa-magic mr-2"></i>Gerar Imagem AI</button>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mediaSource = document.getElementById('mediaSource');
+        const uploadGroup = document.getElementById('uploadGroup');
+        const aiGroup = document.getElementById('aiGroup');
+        const generateButton = document.getElementById('generateButton');
+        const postButton = document.getElementById('postButton');
+        const aiControlButtons = document.getElementById('aiControlButtons');
+        const preview = document.getElementById('preview');
+        const addTextCheckbox = document.getElementById('addText');
+        const addLogoCheckbox = document.getElementById('addLogo');
+        const divTextCheckbox = document.getElementById('divchecktexto');
+        const divLogoCheckbox = document.getElementById('divchecklogo');
+        const mediaInput = document.getElementById('media');
+        const textOptionsGroup = document.getElementById('textOptionsGroup');
+        const logoOptionsGroup = document.getElementById('logoOptionsGroup');
+        const thumbnailGroup = document.getElementById('thumbnailGroup');
+        const regenerateButton = document.getElementById('regenerateButton');
+        const useImageButton = document.getElementById('useImageButton');
+        const aiPromptInput = document.getElementById('aiPrompt');
+        const aiGeneratedImageInput = document.getElementById('aiGeneratedImage');
+        const generateAITextButton = document.getElementById('generateAITextButton');
+        const aiTextPromptInput = document.getElementById('aiTextPrompt');
+        const imageTextInput = document.getElementById('imageText');
+        const useAIDescriptionCheckbox = document.getElementById('useAIDescription');
+        const aiDescriptionGroup = document.getElementById('aiDescriptionGroup');
+        const generateAIDescriptionButton = document.getElementById('generateAIDescriptionButton');
+        const aiDescriptionPromptInput = document.getElementById('aiDescriptionPrompt');
+        const legendaInput = document.getElementById('legenda');
+        const useDefaultLogoCheckbox = document.getElementById('useDefaultLogo');
+        const defaultLogoPreview = document.getElementById('defaultLogoPreview');
+
+        let generatedAIDescription = '';
+
+        if (useDefaultLogoCheckbox) {
+            useDefaultLogoCheckbox.addEventListener('change', function() {
+                defaultLogoPreview.style.display = this.checked ? 'block' : 'none';
+                updatePreview();
+            });
+        }
+
+        useAIDescriptionCheckbox.addEventListener('change', function() {
+            aiDescriptionGroup.style.display = this.checked ? 'block' : 'none';
+        });
+
+        generateAIDescriptionButton.addEventListener('click', generateAIDescription);
+
+        function generateAIDescription() {
+            const aiDescriptionPrompt = aiDescriptionPromptInput.value;
+            if (!aiDescriptionPrompt) {
+                Swal.fire('Erro', 'Por favor, insira um prompt para gerar a descrição.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Gerando descrição...',
+                text: 'Por favor, aguarde.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/generate-ai-text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: "Gere uma descrição (linguagem: português de portugal) para um post no instagram. Contexto:" + aiDescriptionPrompt }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    generatedAIDescription = data.text;
+                    Swal.fire({
+                        title: 'Descrição gerada',
+                        text: `Descrição: "${generatedAIDescription}"`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Usar descrição',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            legendaInput.value = generatedAIDescription;
+                            Swal.fire('Sucesso', 'Descrição copiada para o campo de legenda!', 'success');
+                        }
+                    });
+                } else {
+                    Swal.fire('Erro', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Erro:', error);
+                Swal.fire('Erro', 'Ocorreu um erro ao gerar a descrição.', 'error');
+            });
+        }
+
+
+
+        let generatedAIText = '';
+
+        generateButton.addEventListener('click', generateImage);
+        regenerateButton.addEventListener('click', generateImage);
+        useImageButton.addEventListener('click', useImage);
+
+        function generateImage() {
+            const aiPrompt = aiPromptInput.value;
+            if (!aiPrompt) {
+                Swal.fire('Erro', 'Por favor, insira um prompt para gerar a imagem.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Gerando imagem...',
+                text: 'Por favor, aguarde.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/generate-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ aiPrompt }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    preview.innerHTML = `<img src="data:image/jpeg;base64,${data.image}" alt="Generated Image">`;
+                    aiGeneratedImageInput.value = data.image;
+                    aiControlButtons.style.display = 'block';
+                } else {
+                    Swal.fire('Erro', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Erro:', error);
+                Swal.fire('Erro', 'Ocorreu um erro ao gerar a imagem.', 'error');
+            });
+        }
+
+        function useImage() {
+            postButton.style.display = 'block';
+            generateButton.style.display = 'none';
+            aiControlButtons.style.display = 'none';
+
+            // Exibir as opções de texto e logo
+            divTextCheckbox.style.display = 'inline-block';
+            divLogoCheckbox.style.display = 'inline-block';
+        }
+
+        mediaInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const fileName = file.name;
+                this.nextElementSibling.innerText = fileName;
+                updatePreview();
+                
+                if (file.type.startsWith('image/')) {
+                    divTextCheckbox.style.display = 'inline-block';
+                    divLogoCheckbox.style.display = 'inline-block';
+                    thumbnailGroup.style.display = 'none';
+                } else if (file.type.startsWith('video/')) {
+                    divTextCheckbox.style.display = 'none';
+                    divLogoCheckbox.style.display = 'none';
+                    thumbnailGroup.style.display = 'block';
+                }
+            }
+        });
+
+
+
+        function updatePreview() {
+            const file = document.getElementById('media').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (file.type.startsWith('image/')) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+
+                        // Adicionar texto à imagem
+                        if (addTextCheckbox.checked) {
+                            const text = document.getElementById('imageText').value;
+                            const fontSize = document.getElementById('fontSize').value + 'px';
+                            const fontFamily = document.getElementById('fontFamily').value;
+                            const textColor = document.getElementById('textColor').value;
+                            ctx.font = `${fontSize} ${fontFamily}`;
+                            ctx.fillStyle = textColor;
+                            ctx.textAlign = 'center';
+                            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+                        }
+
+                        // Adicionar logo à imagem (no canto superior direito)
+                        if (addLogoCheckbox.checked) {
+                            let logoSrc;
+                            if (useDefaultLogoCheckbox && useDefaultLogoCheckbox.checked) {
+                                logoSrc = defaultLogoPreview.src;
+                            } else {
+                                const logoFile = document.getElementById('logoFile').files[0];
+                                if (logoFile) {
+                                    logoSrc = URL.createObjectURL(logoFile);
+                                }
+                            }
+
+                            if (logoSrc) {
+                                const logo = new Image();
+                                logo.onload = function() {
+                                    const logoSize = Math.min(canvas.width, canvas.height) / 4;
+                                    ctx.drawImage(logo, canvas.width - logoSize - 10, 10, logoSize, logoSize);
+                                    preview.innerHTML = '';
+                                    preview.appendChild(canvas);
+                                }
+                                logo.src = logoSrc;
+                            }
+                        } else {
+                            preview.innerHTML = '';
+                            preview.appendChild(canvas);
+                        }
+                    }
+                    img.src = e.target.result;
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = e.target.result;
+                    video.controls = true;
+                    preview.innerHTML = '';
+                    preview.appendChild(video);
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+
+        mediaSource.addEventListener('change', function() {
+            if (this.value === 'upload') {
+                uploadGroup.style.display = 'block';
+                aiGroup.style.display = 'none';
+                generateButton.style.display = 'none';
+                postButton.style.display = 'block';
+                aiControlButtons.style.display = 'none';
+            } else {
+                uploadGroup.style.display = 'none';
+                aiGroup.style.display = 'block';
+                generateButton.style.display = 'block';
+                postButton.style.display = 'none';
+                aiControlButtons.style.display = 'none';
+            }
+        });
+
+        document.getElementById('media').addEventListener('change', function() {
+            const fileName = this.files[0].name;
+            this.nextElementSibling.innerText = fileName;
+            updatePreview();
+            if (this.files[0].type.startsWith('video/')) {
+                thumbnailGroup.style.display = 'block';
+            } else {
+                thumbnailGroup.style.display = 'none';
+            }
+        });
+
+        addTextCheckbox.addEventListener('change', function() {
+            textOptionsGroup.style.display = this.checked ? 'block' : 'none';
+            updatePreview();
+        });
+
+        addLogoCheckbox.addEventListener('change', function() {
+            logoOptionsGroup.style.display = this.checked ? 'block' : 'none';
+            updatePreview();
+        });
+
+        document.getElementById('imageText').addEventListener('input', updatePreview);
+        document.getElementById('fontSize').addEventListener('input', updatePreview);
+        document.getElementById('fontFamily').addEventListener('change', updatePreview);
+        document.getElementById('textColor').addEventListener('input', updatePreview);
+        document.getElementById('logoFile').addEventListener('change', updatePreview);
+
+        const scheduleOption = document.getElementById('scheduleOption');
+        const customScheduleGroup = document.getElementById('customScheduleGroup');
+
+        scheduleOption.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customScheduleGroup.style.display = 'block';
+            } else {
+                customScheduleGroup.style.display = 'none';
+            }
+        });
+
+        const useAITextCheckbox = document.getElementById('useAIText');
+        const aiTextGroup = document.getElementById('aiTextGroup');
+
+        useAITextCheckbox.addEventListener('change', function() {
+            aiTextGroup.style.display = this.checked ? 'block' : 'none';
+        });
+
+        generateAITextButton.addEventListener('click', generateAIText);
+
+        function generateAIText() {
+            const aiTextPrompt = aiTextPromptInput.value;
+            if (!aiTextPrompt) {
+                Swal.fire('Erro', 'Por favor, insira um prompt para gerar o texto.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Gerando texto...',
+                text: 'Por favor, aguarde.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/generate-ai-text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: "Crie um texto (linguagem: português de portugal) com um max de 20 caracteres. Contexto: " + aiTextPrompt }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    generatedAIText = data.text;
+                    Swal.fire({
+                        title: 'Texto gerado',
+                        text: `Texto: "${data.text}"`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Usar texto',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            imageTextInput.value = generatedAIText;
+                            Swal.fire('Sucesso', 'Texto copiado para o campo de entrada!', 'success');
+                        }
+                    });
+                } else {
+                    Swal.fire('Erro', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Erro:', error);
+                Swal.fire('Erro', 'Ocorreu um erro ao gerar o texto.', 'error');
+            });
+        }
+
+
+        document.getElementById('postForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+
+            // Garantir que imageText seja uma string
+            const imageText = document.getElementById('imageText').value || '';
+            formData.set('imageText', imageText);
+
+            // Se for agendamento personalizado, adicione os dias da semana selecionados
+            if (formData.get('scheduleOption') === 'custom') {
+                var selectedWeekdays = [];
+                document.querySelectorAll('input[name="weekdays"]:checked').forEach(function(checkbox) {
+                    selectedWeekdays.push(checkbox.value);
+                });
+                formData.delete('weekdays');
+                selectedWeekdays.forEach(day => formData.append('weekdays[]', day));
+            }
+
+            // Mostra o SweetAlert de loading
+            Swal.fire({
+                title: 'A processar...',
+                html: 'Por favor, aguarde enquanto o post é processado.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/post-insta', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Fecha o SweetAlert de loading
+                Swal.close();
+
+                // Mostra o SweetAlert com a mensagem de sucesso ou erro
+                Swal.fire({
+                    title: data.success ? 'Sucesso!' : 'Erro!',
+                    text: data.message,
+                    icon: data.success ? 'success' : 'error',
+                    confirmButtonText: 'OK'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/index';
+                    }
+                });
+            })
+            .catch(error => {
+                // Fecha o SweetAlert de loading
+                Swal.close();
+
+                // Mostra o SweetAlert com a mensagem de erro
+                Swal.fire({
+                    title: 'Erro!',
+                    text: 'Ocorreu um erro ao processar o post',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/index';
+                    }
+                });
+            });
+        });
+    });
+    </script>
+</body>
+</html>
+

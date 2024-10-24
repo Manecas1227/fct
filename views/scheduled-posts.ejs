@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posts Agendados</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 40px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #1877f2;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .schedule-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .media-preview {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .post-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .post-type {
+            font-size: 0.8em;
+            color: #1877f2;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .post-caption {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #333;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary bg-primary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <h3 class="nav-link" style="color: white;"><%= user ? user.igUsername : '' %></h3>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    <li class="nav-item pl-3">
+                        <a href="/index" style="color: white;"><i class="fas fa-home mr-2"></i>Início</a>
+                    </li>
+                    <li class="nav-item pl-3">
+                        <a href="/editar-credenciais" style="color: white;"><i class="fas fa-edit mr-2"></i>Editar Credenciais</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h2 class="text-center"><i class="fas fa-calendar"></i> Posts Agendados</h2>
+        <% if (posts.length === 0) { %>
+            <p class="text-center">Nenhum post agendado.</p>
+        <% } else { %>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Mídia</th>
+                            <th>Tipo</th>
+                            <th>Legenda</th>
+                            <th>Agendamento</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% posts.forEach(post => { %>
+                            <tr>
+                                <td>
+                                    <% if (post.mediaType === 'image') { %>
+                                        <img src="/scheduled-media/<%= post.id %>" alt="Imagem agendada" class="media-preview">
+                                    <% } else if (post.mediaType === 'video') { %>
+                                        <video src="/scheduled-media/<%= post.id %>" class="media-preview" controls></video>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="post-type">
+                                        <% if (post.mediaType === 'image') { %>
+                                            <i class="far fa-image"></i> Imagem
+                                        <% } else if (post.mediaType === 'video') { %>
+                                            <i class="fas fa-video"></i> Vídeo
+                                        <% } %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="post-caption" title="<%= post.legenda %>"><%= post.legenda %></span>
+                                </td>
+                                <td>
+                                    <div class="schedule-info">
+                                        <%= formatSchedule(post.cronSchedule) %>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm edit-post mr-2" data-id="<%= post.id %>" data-schedule="<%= post.cronSchedule %>">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <button class="btn btn-danger btn-sm cancel-post" data-id="<%= post.id %>">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } %>
+    </div>
+    <div class="modal fade" id="editScheduleModal" tabindex="-1" role="dialog" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editScheduleModalLabel">Editar Agendamento</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editScheduleForm">
+                        <input type="hidden" id="editPostId">
+                        <div class="form-group">
+                            <label for="editScheduleOption">Opção de Agendamento:</label>
+                            <select class="form-control" id="editScheduleOption">
+                                <option value="daily">Diariamente</option>
+                                <option value="weekly">Semanalmente</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+                        </div>
+                        <div id="editCustomScheduleGroup" style="display: none;">
+                            <div class="form-group">
+                                <label>Dias da Semana:</label>
+                                <div class="weekday-selector">
+                                    <label><input type="checkbox" name="editWeekdays" value="1"> Seg</label>
+                                    <label><input type="checkbox" name="editWeekdays" value="2"> Ter</label>
+                                    <label><input type="checkbox" name="editWeekdays" value="3"> Qua</label>
+                                    <label><input type="checkbox" name="editWeekdays" value="4"> Qui</label>
+                                    <label><input type="checkbox" name="editWeekdays" value="5"> Sex</label>
+                                    <label><input type="checkbox" name="editWeekdays" value="6"> Sáb</label>
+                                    <label><input type="checkbox" name="editWeekdays" value="0"> Dom</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCustomTime">Horário:</label>
+                            <input type="time" class="form-control" id="editCustomTime">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="saveScheduleChanges">Salvar Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.cancel-post').on('click', function() {
+                const postId = $(this).data('id');
+                Swal.fire({
+                    title: 'Tem certeza?',
+                    text: "Você não poderá reverter esta ação!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sim, cancelar!',
+                    cancelButtonText: 'Não, manter'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/cancel-post',
+                            method: 'POST',
+                            data: { postId: postId },
+                            success: function(response) {
+                                if (response.success) {
+                                    Swal.fire(
+                                        'Cancelado!',
+                                        'O post agendado foi cancelado.',
+                                        'success'
+                                    ).then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire(
+                                        'Erro!',
+                                        'Não foi possível cancelar o post.',
+                                        'error'
+                                    );
+                                }
+                            },
+                            error: function() {
+                                Swal.fire(
+                                    'Erro!',
+                                    'Ocorreu um erro ao tentar cancelar o post.',
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
+            });
+            $('.edit-post').on('click', function() {
+                const postId = $(this).data('id');
+                const currentSchedule = $(this).data('schedule');
+                $('#editPostId').val(postId);
+                
+                // Parse o cronSchedule atual e preencha o formulário
+                const [minute, hour, , , dayOfWeek] = currentSchedule.split(' ');
+                $('#editCustomTime').val(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+                
+                if (dayOfWeek === '*') {
+                    $('#editScheduleOption').val('daily');
+                } else if (dayOfWeek === '1') {
+                    $('#editScheduleOption').val('weekly');
+                } else {
+                    $('#editScheduleOption').val('custom');
+                    $('#editCustomScheduleGroup').show();
+                    const days = dayOfWeek.split(',');
+                    $('input[name="editWeekdays"]').each(function() {
+                        $(this).prop('checked', days.includes($(this).val()));
+                    });
+                }
+                
+                $('#editScheduleModal').modal('show');
+            });
+
+            $('#editScheduleOption').on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#editCustomScheduleGroup').show();
+                } else {
+                    $('#editCustomScheduleGroup').hide();
+                }
+            });
+
+            $('#saveScheduleChanges').on('click', function() {
+                const postId = $('#editPostId').val();
+                const scheduleOption = $('#editScheduleOption').val();
+                const customTime = $('#editCustomTime').val();
+                let weekdays = [];
+                if (scheduleOption === 'custom') {
+                    $('input[name="editWeekdays"]:checked').each(function() {
+                        weekdays.push($(this).val());
+                    });
+                }
+
+                $.ajax({
+                    url: '/edit-post-schedule',
+                    method: 'POST',
+                    data: { 
+                        postId: postId, 
+                        scheduleOption: scheduleOption, 
+                        customTime: customTime, 
+                        weekdays: weekdays 
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire(
+                                'Atualizado!',
+                                'O agendamento do post foi atualizado.',
+                                'success'
+                            ).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Erro!',
+                                'Não foi possível atualizar o agendamento.',
+                                'error'
+                            );
+                        }
+                    },
+                    error: function() {
+                        Swal.fire(
+                            'Erro!',
+                            'Ocorreu um erro ao tentar atualizar o agendamento.',
+                            'error'
+                        );
+                    }
+                });
+
+                $('#editScheduleModal').modal('hide');
+            });
+        });
+
+        <%
+        function formatSchedule(cronSchedule) {
+            const [minute, hour, dayOfMonth, month, dayOfWeek] = cronSchedule.split(' ');
+            
+            // Função auxiliar para garantir dois dígitos
+            const padZero = (num) => num.toString().padStart(2, '0');
+
+            if (dayOfWeek === '*' || dayOfWeek === '1,2,3,4,5,6,0' && dayOfMonth === '*' && month === '*') {
+                return `Todos os dias às ${padZero(hour)}:${padZero(minute)}`;
+            } else if (dayOfMonth === '*' && month === '*') {
+                const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                const selectedDays = dayOfWeek.split(',').map(d => days[d]).join(', ');
+                return `${selectedDays} às ${padZero(hour)}:${padZero(minute)}`;
+            } else {
+                return cronSchedule; // Retorna a expressão cron original se não conseguir formatar
+            }
+        }
+        %>
+    </script>
+</body>
+</html>

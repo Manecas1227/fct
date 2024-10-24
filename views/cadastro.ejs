@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro de Conta Instagram</title>
+    
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        background-color: #f0f2f5;
+        font-family: 'Roboto', sans-serif;
+        color: #333;
+    }
+    .container {
+        max-width: 400px;
+        background-color: #ffffff;
+        border-radius: 15px;
+        padding: 40px;
+        margin: 40px auto;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    h2 {
+        color: #1877f2;
+        font-weight: bold;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    .form-group label {
+        font-weight: 500;
+        color: #4b4f56;
+    }
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #dddfe2;
+        transition: border-color 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: #1877f2;
+        box-shadow: 0 0 0 0.2rem rgba(24, 119, 242, 0.25);
+    }
+    .btn-primary, .btn-secondary {
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .btn-primary {
+        background-color: #1877f2;
+        border-color: #1877f2;
+    }
+    .btn-primary:hover {
+        background-color: #166fe5;
+        box-shadow: 0 4px 8px rgba(24, 119, 242, 0.2);
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.2);
+    }
+    .button-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+    }
+    .button-container .btn {
+        flex: 1;
+        margin: 0 5px;
+    }
+    #logoPreview {
+        max-width: 100%;
+        height: auto;
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h2><i class="fab fa-instagram"></i> <%= user ? 'Editar Credenciais' : 'Cadastro Instagram' %></h2>
+        
+        <form id="cadastroForm" action="<%= user ? '/editar-credenciais' : '/cadastrar-conta' %>" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="igUsername"><i class="fas fa-user mr-2"></i>Nome de usuário do Instagram:</label>
+                <input type="text" class="form-control" id="igUsername" name="igUsername" value="<%= user ? user.igUsername : '' %>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="igPassword"><i class="fas fa-lock mr-2"></i>Senha do Instagram:</label>
+                <input type="password" class="form-control" id="igPassword" name="igPassword" required>
+            </div>
+
+            <div class="form-group">
+                <label for="logo"><i class="fas fa-image mr-2"></i>Logo:</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="logo" name="logo" accept="image/*">
+                    <label class="custom-file-label" for="logo">Escolher arquivo</label>
+                </div>
+                <img id="logoPreview" src="<%= user && user.logoPath ? user.logoPath : '' %>" style="<%= user && user.logoPath ? '' : 'display: none;' %>">
+            </div>
+
+            <div class="button-container">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-2"></i><%= user ? 'Atualizar Credenciais' : 'Salvar Credenciais' %></button>
+                <% if (user) { %>
+                    <a href="/index" class="btn btn-secondary"><i class="fas fa-times mr-2"></i>Cancelar</a>
+                <% } %>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script>
+        <% if (typeof success !== 'undefined' && success !== null) { %>
+            Swal.fire({
+                title: '<%= success ? "Sucesso!" : "Erro!" %>',
+                text: '<%= message %>',
+                icon: '<%= success ? "success" : "error" %>',
+                confirmButtonText: 'OK'
+            });
+        <% } %>
+
+        // Update the file input label with the selected file name
+        $('.custom-file-input').on('change', function(e) {
+            var fileName = e.target.files[0].name;
+            $(this).next('.custom-file-label').html(fileName);
+            
+            // Preview the selected logo
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#logoPreview').attr('src', e.target.result).show();
+            }
+            reader.readAsDataURL(this.files[0]);
+        });
+    </script>
+</body>
+</html>
