@@ -2,7 +2,6 @@ frontend:
     path: ./
     publish: ""
     scripts:
-        build: node index.js
         deploy: ""
     subdomain: fct
 name: fct
