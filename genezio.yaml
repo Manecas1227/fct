@@ -6,5 +6,5 @@ frontend:
         deploy: ""
     subdomain: fct
 name: fct
-region: eu-central-1
+region: us-east-1
 yamlVersion: 2
