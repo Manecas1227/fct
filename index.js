@@ -640,7 +640,7 @@ app.post('/edit-post-schedule', requireAuth, async (req, res) => {
           await fs.writeFile(path.join(__dirname, 'scheduled_posts.json'), JSON.stringify(scheduledPosts, null, 2));
           res.json({ success: true, message: 'Agendamento atualizado com sucesso' });
       } else {
-          res.json({ success: false, message: 'Falha ao criar expressão cron' });
+          res.json({ success: false, message: 'Falha ao criar agendamento' });
       }
   } catch (error) {
       console.error('Erro ao atualizar agendamento:', error);
