@@ -215,23 +215,6 @@ const addLogoToImage = async (image, logoBuffer, metadata) => {
   ]);
 };
 
-const axiosRetry = async (config, maxRetries = 3, initialDelay = 1000) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await axios(config);
-    } catch (error) {
-      if (error.response && error.response.status === 429) {
-        const delay = initialDelay * Math.pow(2, i);
-        console.log(`Tentativa ${i + 1} falhou. Aguardando ${delay}ms antes de tentar novamente.`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error(`Falha após ${maxRetries} tentativas`);
-};
-
 // Função principal para gerar texto com a API da OpenAI
 const generateTextWithAI = async (prompt) => {
   // Log inicial da requisição
