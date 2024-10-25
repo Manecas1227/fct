@@ -19,12 +19,9 @@ const moment = require('moment-timezone');
 const { Configuration, OpenAIApi } = require("openai");
 const sizeOf = require('image-size');
 const rateLimit = require('express-rate-limit');
+const axiosRetry = require('axios-retry').default;
 
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+axiosRetry(axios, { retries: 3 });
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -215,26 +212,37 @@ const addLogoToImage = async (image, logoBuffer, metadata) => {
   ]);
 };
 
-const axiosRetry = async (config, maxRetries = 3, initialDelay = 1000) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await axios(config);
-    } catch (error) {
-      if (error.response && error.response.status === 429) {
-        const delay = initialDelay * Math.pow(2, i);
-        console.log(`Tentativa ${i + 1} falhou. Aguardando ${delay}ms antes de tentar novamente.`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error(`Falha após ${maxRetries} tentativas`);
-};
-
 const generateTextWithAI = async (prompt) => {
+  console.log('Iniciando requisição para OpenAI:', {
+    promptLength: prompt?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+
   try {
-    const response = await axiosRetry({
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY não está definida no ambiente');
+    }
+
+    if (!prompt) {
+      throw new Error('Prompt não pode estar vazio');
+    }
+
+    // Configuração do axios com retry
+    const axiosInstance = axios.create({
+      timeout: 30000, // 30 segundos
+    });
+
+    // Configuração do retry para axiosInstance
+    axiosRetry(axiosInstance, {
+      retries: 3,
+      retryDelay: (retryCount) => retryCount * 1000, // Espera 1s, depois 2s, depois 3s
+      retryCondition: (error) => {
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
+      }
+    });
+
+    // Realiza a requisição
+    const response = await axiosInstance({
       method: 'post',
       url: 'https://api.openai.com/v1/chat/completions',
       headers: {
@@ -244,14 +252,50 @@ const generateTextWithAI = async (prompt) => {
       data: {
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 200,  // Aumentado de 50 para 200
-        temperature: 0.7
+        max_tokens: 200,
+        temperature: 0.7,
+        presence_penalty: 0.1,
+        frequency_penalty: 0.1
       }
     });
+
+    if (!response.data?.choices?.[0]?.message?.content) {
+      throw new Error('Resposta da API não contém o conteúdo esperado');
+    }
+
+    console.log('Resposta recebida com sucesso:', {
+      responseLength: response.data.choices[0].message.content.length,
+      model: response.data.model,
+      usage: response.data.usage,
+      timestamp: new Date().toISOString()
+    });
+
     return response.data.choices[0].message.content.trim();
+
   } catch (error) {
-    console.error('Erro ao gerar texto com IA:', error);
-    throw error;
+    console.error('Erro detalhado na geração de texto:', {
+      errorCode: error.response?.status,
+      errorType: error.name,
+      errorMessage: error.message,
+      errorData: error.response?.data,
+      timestamp: new Date().toISOString(),
+      promptPreview: prompt?.substring(0, 100),
+      stack: error.stack
+    });
+
+    if (error.response?.status === 401) {
+      throw new Error('Chave API inválida ou expirada');
+    } else if (error.response?.status === 429) {
+      throw new Error('Limite de requisições atingido. Tente novamente mais tarde');
+    } else if (error.response?.status === 500) {
+      throw new Error('Erro interno do servidor OpenAI');
+    } else if (error.code === 'ECONNABORTED') {
+      throw new Error('Timeout na requisição para OpenAI');
+    } else if (error.code === 'ECONNREFUSED') {
+      throw new Error('Não foi possível conectar ao servidor OpenAI');
+    }
+
+    throw new Error(`Erro ao gerar texto com IA: ${error.message}`);
   }
 };
 
