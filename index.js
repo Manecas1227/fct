@@ -233,8 +233,42 @@ const axiosRetry = async (config, maxRetries = 3, initialDelay = 1000) => {
 };
 
 const generateTextWithAI = async (prompt) => {
+  // Log inicial da requisição
+  console.log('Iniciando requisição para OpenAI:', {
+    promptLength: prompt?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+
   try {
-    const response = await axiosRetry({
+    // Validações iniciais
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY não está definida no ambiente');
+    }
+
+    if (!prompt) {
+      throw new Error('Prompt não pode estar vazio');
+    }
+
+    // Configuração do axios com retry
+    const axiosInstance = axios.create({
+      timeout: 30000, // 30 segundos
+    });
+
+    // Configuração do retry
+    axiosRetry(axiosInstance, { 
+      retries: 3,
+      retryDelay: (retryCount) => {
+        return retryCount * 1000; // Espera 1s, depois 2s, depois 3s
+      },
+      retryCondition: (error) => {
+        // Retenta em caso de erros de rede ou 429 (rate limit)
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+               error.response?.status === 429;
+      }
+    });
+
+    // Realiza a requisição
+    const response = await axiosInstance({
       method: 'post',
       url: 'https://api.openai.com/v1/chat/completions',
       headers: {
@@ -244,14 +278,55 @@ const generateTextWithAI = async (prompt) => {
       data: {
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 200,  // Aumentado de 50 para 200
-        temperature: 0.7
+        max_tokens: 200,
+        temperature: 0.7,
+        presence_penalty: 0.1,
+        frequency_penalty: 0.1
       }
     });
+
+    // Validação da resposta
+    if (!response.data?.choices?.[0]?.message?.content) {
+      throw new Error('Resposta da API não contém o conteúdo esperado');
+    }
+
+    // Log de sucesso
+    console.log('Resposta recebida com sucesso:', {
+      responseLength: response.data.choices[0].message.content.length,
+      model: response.data.model,
+      usage: response.data.usage,
+      timestamp: new Date().toISOString()
+    });
+
     return response.data.choices[0].message.content.trim();
+
   } catch (error) {
-    console.error('Erro ao gerar texto com IA:', error);
-    throw error;
+    // Log detalhado do erro
+    console.error('Erro detalhado na geração de texto:', {
+      errorCode: error.response?.status,
+      errorType: error.name,
+      errorMessage: error.message,
+      errorData: error.response?.data,
+      timestamp: new Date().toISOString(),
+      promptPreview: prompt?.substring(0, 100), // primeiros 100 caracteres do prompt
+      stack: error.stack
+    });
+
+    // Tratamento específico por tipo de erro
+    if (error.response?.status === 401) {
+      throw new Error('Chave API inválida ou expirada');
+    } else if (error.response?.status === 429) {
+      throw new Error('Limite de requisições atingido. Tente novamente mais tarde');
+    } else if (error.response?.status === 500) {
+      throw new Error('Erro interno do servidor OpenAI');
+    } else if (error.code === 'ECONNABORTED') {
+      throw new Error('Timeout na requisição para OpenAI');
+    } else if (error.code === 'ECONNREFUSED') {
+      throw new Error('Não foi possível conectar ao servidor OpenAI');
+    }
+
+    // Se chegou aqui, é um erro não mapeado
+    throw new Error(`Erro ao gerar texto com IA: ${error.message}`);
   }
 };
 
