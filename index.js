@@ -19,7 +19,7 @@ const moment = require('moment-timezone');
 const { Configuration, OpenAIApi } = require("openai");
 const sizeOf = require('image-size');
 const rateLimit = require('express-rate-limit');
-
+const axiosRetry = require('axios-retry');
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -232,6 +232,7 @@ const axiosRetry = async (config, maxRetries = 3, initialDelay = 1000) => {
   throw new Error(`Falha após ${maxRetries} tentativas`);
 };
 
+// Função principal para gerar texto com a API da OpenAI
 const generateTextWithAI = async (prompt) => {
   // Log inicial da requisição
   console.log('Iniciando requisição para OpenAI:', {
@@ -249,25 +250,23 @@ const generateTextWithAI = async (prompt) => {
       throw new Error('Prompt não pode estar vazio');
     }
 
-    // Configuração do axios com retry
+    // Configuração do axios com timeout
     const axiosInstance = axios.create({
       timeout: 30000, // 30 segundos
     });
 
-    // Configuração do retry
-    axiosRetry(axiosInstance, { 
+    // Configuração do retry com axiosRetry
+    axiosRetry(axiosInstance, {
       retries: 3,
-      retryDelay: (retryCount) => {
-        return retryCount * 1000; // Espera 1s, depois 2s, depois 3s
-      },
+      retryDelay: (retryCount) => retryCount * 1000, // Espera 1s, depois 2s, depois 3s
       retryCondition: (error) => {
         // Retenta em caso de erros de rede ou 429 (rate limit)
-        return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
                error.response?.status === 429;
       }
     });
 
-    // Realiza a requisição
+    // Realiza a requisição para a API da OpenAI
     const response = await axiosInstance({
       method: 'post',
       url: 'https://api.openai.com/v1/chat/completions',
@@ -286,19 +285,20 @@ const generateTextWithAI = async (prompt) => {
     });
 
     // Validação da resposta
-    if (!response.data?.choices?.[0]?.message?.content) {
+    const content = response.data?.choices?.[0]?.message?.content;
+    if (!content) {
       throw new Error('Resposta da API não contém o conteúdo esperado');
     }
 
     // Log de sucesso
     console.log('Resposta recebida com sucesso:', {
-      responseLength: response.data.choices[0].message.content.length,
+      responseLength: content.length,
       model: response.data.model,
       usage: response.data.usage,
       timestamp: new Date().toISOString()
     });
 
-    return response.data.choices[0].message.content.trim();
+    return content.trim();
 
   } catch (error) {
     // Log detalhado do erro
@@ -325,7 +325,7 @@ const generateTextWithAI = async (prompt) => {
       throw new Error('Não foi possível conectar ao servidor OpenAI');
     }
 
-    // Se chegou aqui, é um erro não mapeado
+    // Erro não mapeado
     throw new Error(`Erro ao gerar texto com IA: ${error.message}`);
   }
 };
