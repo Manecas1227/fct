@@ -106,7 +106,16 @@ const generateImageWithAI = async (prompt) => {
     console.log(`Prompt original: "${prompt}"`);
     console.log(`Prompt traduzido: "${translatedPrompt}"`);
 
-    const response = await axiosRetry({
+    const axiosInstance = axios.create({
+      timeout: 30000, // 30 segundos
+      retries: 3,
+      retryDelay: (retryCount) => retryCount * 1000, // Espera 1s, depois 2s, depois 3s
+      retryCondition: (error) => {
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
+      },
+    });
+
+    const response = await axiosInstance({
       method: 'post',
       url: 'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
       headers: {
