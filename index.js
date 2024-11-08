@@ -232,7 +232,7 @@ const generateTextWithAI = async (prompt) => {
       throw new Error('OPENAI_API_KEY não está definida no ambiente');
     }
 
-    if (!prompt) {
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       throw new Error('Prompt não pode estar vazio');
     }
 
