@@ -102,46 +102,22 @@ const generateImageWithAI = async (prompt) => {
   }
 
   try {
-    const translatedPrompt = await translateToEnglish(prompt);
-    console.log(`Prompt original: "${prompt}"`);
-    console.log(`Prompt traduzido: "${translatedPrompt}"`);
+    console.log(`Prompt imagem: "${prompt}"`);
 
-    const axiosInstance = axios.create({
-      timeout: 30000, // 30 segundos
-      retries: 3,
-      retryDelay: (retryCount) => retryCount * 1000, // Espera 1s, depois 2s, depois 3s
-      retryCondition: (error) => {
-        return axiosRetry.isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
-      },
+    const response = await openai.createImage({
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
     });
 
-    const response = await axiosInstance({
-      method: 'post',
-      url: 'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${process.env.STABILITY_API_KEY}`,
-      },
-      data: {
-        text_prompts: [
-          {
-            text: translatedPrompt,
-          },
-        ],
-        cfg_scale: 7,
-        height: 1024,
-        width: 1024,
-        samples: 1,
-        steps: 30,
-      },
-    });
-
-    if (response.data && response.data.artifacts && response.data.artifacts.length > 0) {
-      const base64Image = response.data.artifacts[0].base64;
-      const buffer = Buffer.from(base64Image, 'base64');
+    if (response.data && response.data.data.length > 0) {
+      const imageUrl = response.data.data[0].url;
       const imagePath = './uploads/ai_generated_image.png';
-      await fs.writeFile(imagePath, buffer);
+
+      // Faz download da imagem e salva no caminho especificado
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      await fs.writeFile(imagePath, imageResponse.data);
+      
       return imagePath;
     } else {
       console.error('Resposta da API não contém imagens:', response.data);
