@@ -329,7 +329,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt: "Gere uma descrição (linguagem: português de portugal) para um post no instagram. Contexto:" + aiDescriptionPrompt }),
+                body: JSON.stringify({ prompt: "Gere uma descrição (linguagem: português de portugal) para um post no instagram. Contexto:" + aiDescriptionPrompt + "(mande a descrição sem aspas)"}),
             })
             .then(response => response.json())
             .then(data => {
