@@ -102,33 +102,52 @@ const translateToEnglish = async (text) => {
 
 const generateImageWithAI = async (prompt) => {
   if (!prompt || prompt.trim() === '') {
-    throw new Error('Prompt não pode estar vazio');
+    throw new Error('O prompt não pode estar vazio');
   }
 
   try {
-    console.log(`Prompt imagem: "${prompt}"`);
+    console.log(`Gerando imagem com prompt: "${prompt}"`);
+    
+    // Criar diretório de uploads se não existir
+    const uploadDir = './uploads';
+    await fs.mkdir(uploadDir, { recursive: true });
+    
+    // Gerar nome único para o arquivo
+    const timestamp = Date.now();
+    const imagePath = path.join(uploadDir, `ai_generated_image_${timestamp}.png`);
 
-    const response = await openai.createImage({
+    // Fazer a requisição para a OpenAI
+    const response = await openai.images.generate({
+      model: "dall-e-3", // ou "dall-e-2" dependendo da sua necessidade
       prompt: prompt,
       n: 1,
       size: "1024x1024",
+      quality: "standard",
+      response_format: "url"
     });
 
-    if (response.data && response.data.data.length > 0) {
-      const imageUrl = response.data.data[0].url;
-      const imagePath = './uploads/ai_generated_image.png';
-
-      // Faz download da imagem e salva no caminho especificado
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-      await fs.writeFile(imagePath, imageResponse.data);
-      
-      return imagePath;
-    } else {
-      console.error('Resposta da API não contém imagens:', response.data);
-      throw new Error('Nenhuma imagem gerada pela API');
+    if (!response.data?.[0]?.url) {
+      throw new Error('A API não retornou uma URL de imagem válida');
     }
+
+    // Download e salvamento da imagem
+    const imageResponse = await axios({
+      method: 'get',
+      url: response.data[0].url,
+      responseType: 'arraybuffer',
+      timeout: 15000 // timeout de 15 segundos
+    });
+
+    await fs.writeFile(imagePath, imageResponse.data);
+    console.log(`Imagem salva com sucesso em: ${imagePath}`);
+
+    return imagePath;
+
   } catch (error) {
-    console.error('Erro detalhado ao gerar imagem com IA:', error.response ? error.response.data : error.message);
+    console.error('Erro ao gerar imagem:', {
+      message: error.message,
+      details: error.response?.data || error
+    });
     throw new Error(`Falha ao gerar imagem: ${error.message}`);
   }
 };
