@@ -369,7 +369,7 @@
         useImageButton.addEventListener('click', useImage);
 
         function generateImage() {
-            const aiPrompt = "Gere uma imagem de:" aiPromptInput.value;
+            const aiPrompt = aiPromptInput.value;
             if (!aiPrompt) {
                 Swal.fire('Erro', 'Por favor, insira um prompt para gerar a imagem.', 'error');
                 return;
@@ -389,7 +389,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ aiPrompt }),
+                body: JSON.stringify({ "Gere uma imagem de:" + aiPrompt }),
             })
             .then(response => response.json())
             .then(data => {
