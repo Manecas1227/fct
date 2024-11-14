@@ -389,7 +389,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ "Gere uma imagem de:" + aiPrompt }),
+                body: JSON.stringify({ aiPrompt }),
             })
             .then(response => response.json())
             .then(data => {
