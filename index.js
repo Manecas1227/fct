@@ -436,13 +436,7 @@ const optimizeImage = async (inputBuffer) => {
     });
 
     // Aplicar ajustes para melhorar a qualidade
-    resizedImage = resizedImage
-      .sharpen() // Aumenta a nitidez
-      .modulate({
-        brightness: 1.05, // Aumenta levemente o brilho
-        saturation: 1.1 // Aumenta levemente a saturação
-      })
-      .jpeg({ quality: 85, progressive: true }); // Comprime como JPEG de alta qualidade
+    resizedImage = resizedImage.jpeg({ quality: 85, progressive: true }); // Comprime como JPEG de alta qualidade
 
     return resizedImage.toBuffer();
   } catch (error) {
