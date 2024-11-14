@@ -20,6 +20,7 @@ const { Configuration, OpenAIApi } = require("openai");
 const sizeOf = require('image-size');
 const rateLimit = require('express-rate-limit');
 const axiosRetry = require('axios-retry').default;
+const { OpenAI } = require('openai');
 
 axiosRetry(axios, { retries: 3 });
 
