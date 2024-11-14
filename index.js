@@ -23,9 +23,9 @@ const axiosRetry = require('axios-retry').default;
 
 axiosRetry(axios, { retries: 3 });
 
-const openai = new OpenAIApi(new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-}));
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY // Certifique-se de ter definido esta variável de ambiente
+});
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
