@@ -329,7 +329,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt: "Gere uma descrição (linguagem: português de portugal) para um post no instagram. Contexto:" + aiDescriptionPrompt + "(mande a descrição sem aspas)"}),
+                body: JSON.stringify({ prompt: "Gere uma descrição (linguagem: português de portugal) para um post no instagram. Contexto:" + aiDescriptionPrompt + "(mande tudo sem aspas)"}),
             })
             .then(response => response.json())
             .then(data => {
@@ -369,7 +369,7 @@
         useImageButton.addEventListener('click', useImage);
 
         function generateImage() {
-            const aiPrompt = aiPromptInput.value;
+            const aiPrompt = "Gere uma imagem de:" aiPromptInput.value;
             if (!aiPrompt) {
                 Swal.fire('Erro', 'Por favor, insira um prompt para gerar a imagem.', 'error');
                 return;
